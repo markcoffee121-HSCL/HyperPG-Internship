@@ -290,7 +290,7 @@ Based on the curriculum structure:
 - [x] curl installed and working
 - [x] jq installed and working
 - [x] SSH key generated (ed25519)
-- [ ] SSH key added to GitHub account
+- [x] SSH key added to GitHub account
 - [x] Workspace folder created (`C:\HyperPG-Internship`)
 - [x] AIMs subfolder created
 - [x] docs subfolder created
