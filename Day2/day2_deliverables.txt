@@ -1,0 +1,30 @@
+DAY 2 DELIVERABLES - NODE RUNNING CONFIRMATION
+===============================================
+
+1. LISTENING PORTS:
+
+tcp        0      0 0.0.0.0:8005            0.0.0.0:*               LISTEN      6418/python3        
+tcp        0      0 0.0.0.0:8006            0.0.0.0:*               LISTEN      6393/node           
+tcp        0      0 127.0.0.1:27017         0.0.0.0:*               LISTEN      1180/mongod         
+tcp        0      0 127.0.0.1:8007          0.0.0.0:*               LISTEN      6417/python3        
+
+2. RUNNING PROCESSES:
+hypercy+    6417  0.5  1.6 595260 135044 ?       Sl   20:01   0:19 python3 /home/hypercycle/hypercycle-manager-0.4.16/controller_backend/node_controller/controller_serve.py --config=../../../config/config.yaml --merkle
+hypercy+    6418  2.0  1.7 893468 140120 ?       Sl   20:01   1:14 python3 /home/hypercycle/hypercycle-manager-0.4.16/controller_backend/node_controller/controller_serve.py --config=../../../config/config.yaml
+
+3. SERVICE STATUS:
+● hypercycle.service - LSB: Hypercycle node software
+     Loaded: loaded (/etc/init.d/hypercycle; generated)
+     Active: active (exited) since Thu 2025-11-13 20:01:35 EET; 1h 0min ago
+       Docs: man:systemd-sysv-generator(8)
+    Process: 6206 ExecStart=/etc/init.d/hypercycle start (code=exited, status=0/SUCCESS)
+        CPU: 187ms
+
+تشرين الثاني 13 20:01:19 markcoffee-VirtualBox systemd[1]: Starting LSB: Hypercycle node software...
+تشرين الثاني 13 20:01:29 markcoffee-VirtualBox sudo[6218]:     root : PWD=/home/hypercycle/hypercycle-manager-0.4.16 ; USER=root ; COMMAND=/usr/sbin/service mongod start
+تشرين الثاني 13 20:01:29 markcoffee-VirtualBox sudo[6218]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+تشرين الثاني 13 20:01:30 markcoffee-VirtualBox sudo[6218]: pam_unix(sudo:session): session closed for user root
+تشرين الثاني 13 20:01:35 markcoffee-VirtualBox systemd[1]: Started LSB: Hypercycle node software.
+تشرين الثاني 13 20:01:35 markcoffee-VirtualBox su[6246]: (to hypercycle) root on none
+تشرين الثاني 13 20:01:35 markcoffee-VirtualBox su[6247]: (to hypercycle) root on none
+تشرين الثاني 13 20:01:35 markcoffee-VirtualBox su[6246]: pam_unix(su:session): session opened for user hypercycle(uid=1001) by (uid=0)

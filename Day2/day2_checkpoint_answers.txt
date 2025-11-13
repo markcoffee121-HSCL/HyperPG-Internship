@@ -1,0 +1,11 @@
+DAY 2 CHECKPOINT ANSWERS
+========================
+
+Q1: What part of the Node handles routing?
+A1: The Router/API Server running on port 8005 handles routing. It's implemented using the Starlette web framework in the controller_serve.py module. This component receives all incoming HTTP requests and routes them to the appropriate handlers/endpoints.
+
+Q2: Where do the Node logs go, and how do you read them?
+A2: Node logs are stored in two locations:
+   - System logs: Accessed via 'sudo journalctl -u hypercycle -f' for real-time monitoring
+   - Application logs: Located at /home/hypercycle/hypercycle-manager-0.4.16/node_manager_*.out files
+   To read them: Use 'sudo tail -f [log_file_path]' for real-time viewing or 'sudo tail -n [number] [log_file_path]' for last N lines.

@@ -1,0 +1,48 @@
+====================================
+DAY 2 - NODE ARCHITECTURE & LAUNCH
+COMPLETION SUMMARY
+====================================
+
+DATE: November 13, 2025
+PROJECT: HyperPG Internship - Node Setup
+ENVIRONMENT: Ubuntu 22.04 VM on VirtualBox
+
+TASKS COMPLETED:
+✅ 1. Drew Node Architecture Diagram
+✅ 2. Started Local Node Environment  
+✅ 3. Watched Logs in Real Time (journalctl)
+✅ 4. Identified Listening Ports
+
+DELIVERABLES CREATED:
+✅ 1. day2_node_diagram.txt - Complete architecture diagram
+✅ 2. day2_deliverables.txt - Command outputs proving node running
+✅ 3. day2_checkpoint_answers.txt - Answers to checkpoint questions
+
+NODE STATUS:
+- Router/API Server: Port 8005 (RUNNING)
+- Admin UI: Port 8006 (RUNNING)
+- Merkle Service: Port 8007 (RUNNING)
+- MongoDB: Port 27017 (RUNNING)
+- Uptime: 1+ hours
+- Service Status: Active (exited)
+
+PROCESSES RUNNING:
+- PID 6417: Merkle service (python3 controller_serve.py --merkle)
+- PID 6418: Main API server (python3 controller_serve.py)
+
+CHECKPOINT QUESTIONS ANSWERED:
+Q1: Routing handled by Router/API Server (port 8005, controller_serve.py, Starlette framework)
+Q2: Logs accessible via journalctl -u hypercycle -f and node_manager_*.out files
+
+FILES LOCATION:
+- All deliverables saved in: /home/markcoffee/
+- Node installation: /home/hypercycle/hypercycle-manager-0.4.16/
+- Config file: /home/hypercycle/config/config.yaml
+
+KNOWN LIMITATIONS:
+- /info endpoint fails due to Ethereum RPC connectivity
+- This is expected for development/learning setup without wallet funding
+- Does not affect Day 2 learning objectives
+
+DAY 2 STATUS: ✅ COMPLETE
+====================================
