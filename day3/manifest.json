@@ -1,0 +1,93 @@
+{
+  "name": "Hello AIM Test Service",
+  "short_name": "hello-aim",
+  "version": "0.1.0",
+  "documentation_url": "https://example.com/docs",
+  "license": "MIT",
+  "terms_of_service": "",
+  "author": "HyperPG Intern",
+  "endpoints": [
+    {
+      "uri": "/",
+      "input_methods": ["GET"],
+      "input_query": {},
+      "input_body": {},
+      "output": {
+        "message": "<string>"
+      },
+      "documentation": "Returns a welcome message.",
+      "example_calls": [
+        {
+          "method": "GET",
+          "query": "",
+          "output": {
+            "message": "Hello from AIM!"
+          }
+        }
+      ],
+      "is_public": true
+    },
+    {
+      "uri": "/greet",
+      "input_methods": ["GET"],
+      "input_query": {
+        "name": "<string>"
+      },
+      "input_body": {},
+      "output": {
+        "message": "<string>"
+      },
+      "documentation": "Returns a personalized greeting.",
+      "example_calls": [
+        {
+          "method": "GET",
+          "query": "?name=World",
+          "output": {
+            "message": "Hello, World!"
+          }
+        }
+      ],
+      "is_public": true
+    },
+    {
+      "uri": "/health",
+      "input_methods": ["GET"],
+      "input_query": {},
+      "input_body": {},
+      "output": {
+        "status": "<string>"
+      },
+      "documentation": "Health check endpoint.",
+      "example_calls": [
+        {
+          "method": "GET",
+          "query": "",
+          "output": {
+            "status": "healthy"
+          }
+        }
+      ],
+      "is_public": true
+    },
+    {
+      "uri": "/manifest.json",
+      "input_methods": ["GET"],
+      "input_query": {},
+      "input_body": {},
+      "output": {
+        "manifest": "<object>"
+      },
+      "documentation": "Returns the AIM manifest.",
+      "example_calls": [
+        {
+          "method": "GET",
+          "query": "",
+          "output": {
+            "manifest": "..."
+          }
+        }
+      ],
+      "is_public": true
+    }
+  ]
+}
