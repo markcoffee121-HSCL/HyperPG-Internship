@@ -1,0 +1,63 @@
+DAY 4 - CUSTOM AIM DEPLOYMENT OUTPUTS
+=====================================
+
+1. DOCKER BUILD OUTPUT:
+-----------------------
+Command: sudo docker build -t my-hello-aim:1.0 .
+Status: SUCCESS
+Build Time: 127.2s
+Image ID: sha256:1dc1bfdbd7e9...
+
+2. IMAGE VERIFICATION:
+----------------------
+Command: sudo docker images | grep my-hello-aim
+Output:
+my-hello-aim   1.0   1dc1bfdbd7e9   About a minute ago   164MB
+
+3. REGISTRY PUSH:
+-----------------
+Command: sudo docker push localhost:5000/my-hello-aim:1.0
+Output: 
+1.0: digest: sha256:7b7399d05fcab99e9409cc877a17d6c0c0befdd458f4afd52c4a731c80e43e2f size: 856
+
+4. REGISTRY VERIFICATION:
+-------------------------
+Command: curl http://localhost:5000/v2/_catalog
+Output: {"repositories":["hello-aim","my-hello-aim"]}
+
+Command: curl http://localhost:5000/v2/my-hello-aim/tags/list
+Output: {"name":"my-hello-aim","tags":["1.0"]}
+
+5. AIM DEPLOYMENT:
+------------------
+Command: curl --location 'http://localhost:8005/add_aim' \
+         --header 'Content-Type: application/json' \
+         --data '{"name": "my-hello-aim", "tag": "1.0", "port": "9020", "environment": {"PORT": "4000"}}'
+Output: {"_id":9020,"image_id":null,"image_name":"my-hello-aim","image_tag":"1.0",...}
+
+6. CONTAINER STATUS:
+--------------------
+Command: sudo docker ps | grep my-hello-aim
+Output:
+93c30b31cc53   localhost:5000/my-hello-aim:1.0   "python3 main.py"   Up 2 minutes   0.0.0.0:9020->4000/tcp   HYPC_5af88591a9019b40_9020
+
+7. CONTAINER LOGS:
+------------------
+Command: sudo docker logs 93c30b31cc53
+Output:
+INFO:     Started server process [1]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:4000 (Press CTRL+C to quit)
+INFO:     172.17.0.1:47572 - "POST /run HTTP/1.1" 200 OK
+INFO:     172.17.0.1:36302 - "GET /manifest.json HTTP/1.1" 200 OK
+
+8. ENDPOINT TESTING:
+--------------------
+Command: curl -X POST http://localhost:9020/run
+Output: {"message":"Hello Node!"}
+
+Command: curl -X GET http://localhost:9020/manifest.json
+Output: {"name":"MyHelloAIM","short_name":"hello-aim","version":"1.0.0",...}
+
+RESULT: AIM SUCCESSFULLY DEPLOYED AND RESPONDING

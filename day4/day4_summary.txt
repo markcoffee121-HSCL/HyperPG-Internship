@@ -1,0 +1,95 @@
+DAY 4 - BUILD & DEPLOY CUSTOM AIM - COMPLETE SUMMARY
+=====================================================
+
+OBJECTIVE:
+Build a custom AIM from scratch with POST /run endpoint returning "Hello Node!"
+
+TASKS COMPLETED:
+---------------
+[DONE] Created main.py with pyhypercycle_aim framework
+[DONE] Implemented POST /run endpoint returning {"message": "Hello Node!"}
+[DONE] Created requirements.txt with pyhypercycle_aim dependency
+[DONE] Wrote Dockerfile with Python 3.10-slim base image
+[DONE] Installed git in Docker container for dependency installation
+[DONE] Built Docker image: my-hello-aim:1.0
+[DONE] Tagged and pushed to local registry (localhost:5000)
+[DONE] Deployed AIM to Hypercycle Node on port 9020
+[DONE] Tested endpoint successfully
+[DONE] Verified container running and healthy
+
+PROJECT STRUCTURE:
+------------------
+day4-custom-aim/
+├── main.py                          # AIM server implementation
+├── requirements.txt                 # Python dependencies
+├── Dockerfile                       # Container definition
+├── day4_deployment_outputs.txt      # Command outputs
+├── day4_checkpoint_answers.txt      # Checkpoint question answers
+└── day4_summary.txt                 # This file
+
+AIM DETAILS:
+------------
+Name: MyHelloAIM
+Version: 1.0.0
+Image: localhost:5000/my-hello-aim:1.0
+Container Port: 4000
+Host Port: 9020
+Endpoint: POST /run
+Response: {"message": "Hello Node!"}
+
+TECHNICAL IMPLEMENTATION:
+-------------------------
+1. Used pyhypercycle_aim.SimpleServer as base class
+2. Defined manifest with AIM metadata
+3. Used @aim_uri decorator to register /run endpoint
+4. Implemented async endpoint handler
+5. Returned JSONResponseCORS for CORS support
+6. Configured Uvicorn server on port 4000
+
+DOCKERFILE CONFIGURATION:
+-------------------------
+- Base Image: python:3.10-slim
+- System Dependencies: git (required for pyhypercycle_aim installation)
+- Working Directory: /app
+- Exposed Port: 4000
+- Labels: GPUS="0", description, author
+- CMD: python3 main.py
+
+DEPLOYMENT PROCESS:
+-------------------
+1. Built Docker image locally
+2. Tagged for local registry (localhost:5000)
+3. Pushed to registry
+4. Called Node's /add_aim API endpoint
+5. Node pulled image and started container
+6. Container mapped to host port 9020
+7. Verified with curl testing
+
+CHALLENGES SOLVED:
+------------------
+1. Initial Docker build failed - missing git
+   Solution: Added git installation to Dockerfile
+   
+2. Permission denied on docker commands
+   Solution: Used sudo for docker operations
+
+VERIFICATION:
+-------------
+[PASS] Container Status: Running (HYPC_5af88591a9019b40_9020)
+[PASS] Logs: Server started successfully on http://0.0.0.0:4000
+[PASS] POST /run: Returns {"message":"Hello Node!"} with 200 OK
+[PASS] GET /manifest.json: Returns valid AIM manifest
+[PASS] Registry: Image accessible at localhost:5000/my-hello-aim:1.0
+
+CHECKPOINT ANSWERS:
+-------------------
+1. EXPOSE vs CMD:
+   - EXPOSE documents ports (passive)
+   - CMD defines startup command (active)
+
+2. Unhealthy AIM Indicators:
+   - Failed health checks
+   - Container crashes
+   - Endpoint failures
+   - Resource issues
+

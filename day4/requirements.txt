@@ -1,0 +1,2 @@
+git+https://github.com/hypercycle-development/pyhypercycle-aim.git#egg=pyhypercycle_aim
+uvicorn==0.23.2
