@@ -1,0 +1,167 @@
+DAY 5 - RESOURCE LIMITS + HEALTH CHECKS
+COMPREHENSIVE SUMMARY
+======================================
+
+PROJECT OVERVIEW:
+-----------------
+Enhanced Day 4's MyHelloAIM with resource controls and health monitoring.
+Intentionally broke the AIM to observe Node recovery behavior.
+Documented failure modes and recovery mechanisms.
+
+DELIVERABLES COMPLETED:
+-----------------------
+
+1. UPDATED MANIFEST WITH RESOURCE CONTROLS:
+   ✓ CPU_SHARES: 512 (medium priority)
+   ✓ HEALTH_URI: /health
+   ✓ HEALTH_RETRIES: 3
+   ✓ HEALTH_TIMEOUT: 400ms
+   ✓ HEALTH_INTERVAL: 5000ms
+   ✓ All labels added to Dockerfile
+
+2. HEALTH ENDPOINT IMPLEMENTATION:
+   ✓ GET /health endpoint returns {"status":"healthy","aim":"MyHelloAIM","version":"1.1.0"}
+   ✓ Properly configured in endpoint manifest
+   ✓ Tested and verified working
+
+3. INTENTIONAL BREAK:
+   ✓ Added GET /break endpoint with infinite loop
+   ✓ Successfully caused AIM to freeze
+   ✓ Observed CPU consumption (105% - 1 full core)
+   ✓ Observed blocking behavior (all endpoints frozen)
+   
+4. NODE RECOVERY OBSERVATIONS:
+   ✓ Monitored container status during failure
+   ✓ Checked health check logs
+   ✓ Documented that auto-recovery didn't trigger
+   ✓ Successfully performed manual recovery (docker restart)
+
+5. DOCUMENTATION:
+   ✓ day5_failure_behavior_notes.txt (detailed observations)
+   ✓ day5_checkpoint_answers.txt (answered both questions)
+   ✓ day5_summary.txt (this file)
+
+
+VERSIONS DEPLOYED:
+------------------
+- v1.0: Original Day 4 version (POST /run only)
+- v1.1: Added /health endpoint + resource labels
+- v1.2: Added /break endpoint for failure testing
+
+Final deployment: v1.2 on port 9025
+
+
+TECHNICAL ACHIEVEMENTS:
+-----------------------
+
+1. Resource Label Configuration:
+   - Successfully added all required Docker labels
+   - Labels properly recognized by Node Manager
+   - Resource constraints defined (even if not enforced in all cases)
+
+2. Health Endpoint:
+   - Implemented proper async health check
+   - Returns structured JSON response
+   - Works independently (when not blocked)
+
+3. Failure Testing:
+   - Created reproducible failure scenario
+   - Infinite loop successfully consumed full CPU core
+   - Demonstrated blocking behavior in async server
+   - Proved health checks can fail silently
+
+4. Recovery Process:
+   - Documented manual recovery steps
+   - Verified complete recovery after restart
+   - All endpoints functional post-recovery
+
+
+KEY DISCOVERIES:
+----------------
+
+1. CPU_SHARES Behavior:
+   - Sets priority, not hard limits
+   - AIM can use full core when available
+   - Important for multi-AIM fairness
+   - Prevents resource starvation
+
+2. Health Check Limitations:
+   - Labels defined but auto-recovery not triggered in this Node version
+   - Health endpoint can be blocked by bad code
+   - Manual intervention required for recovery
+   - Production would need external monitoring
+
+3. Async Server Blocking:
+   - Single infinite loop blocks entire server
+   - All endpoints become unresponsive
+   - Need proper async patterns and timeouts
+   - Multiple workers would provide better isolation
+
+4. Memory Behavior:
+   - No memory leak from infinite loop
+   - Stable at ~20 MB usage
+   - mem_limit would prevent runaway allocation
+   - Separate concern from CPU usage
+
+
+CHECKPOINT QUESTIONS ANSWERED:
+------------------------------
+
+Q1: Why is CPU_SHARES important in multi-AIM nodes?
+A: Ensures fair CPU distribution among AIMs based on priority weights.
+   Prevents resource starvation while maximizing utilization.
+   Critical for multi-tenant environments.
+
+Q2: What is the difference between mem_limit and swap?
+A: mem_limit = RAM boundary (fast, hard limit)
+   swap = Disk overflow (slow, emergency buffer)
+   Together they control total memory available to container.
+
+
+TESTING WORKFLOW:
+-----------------
+
+Phase 1: Added /health endpoint
+- Updated main.py with health endpoint
+- Tested locally via Docker build
+
+Phase 2: Updated Dockerfile with resource labels
+- Added CPU_SHARES, HEALTH_* labels
+- Rebuilt as v1.1
+
+Phase 3: Deployed with resource controls
+- Pushed to local registry
+- Deployed on port 9025
+- Verified health and run endpoints working
+
+Phase 4: Broke the AIM intentionally
+- Added /break endpoint with infinite loop
+- Rebuilt as v1.2
+- Triggered break, observed CPU spike to 105%
+- Confirmed all endpoints blocked
+
+Phase 5: Observed Node recovery
+- Monitored docker ps (container stayed Up)
+- Checked logs (no auto-recovery triggered)
+- Manually restarted container
+- Verified full recovery
+
+Phase 6: Documentation
+- Created comprehensive failure notes
+- Answered checkpoint questions
+- Summarized entire Day 5 experience
+
+
+PRODUCTION RECOMMENDATIONS:
+----------------------------
+
+1. Always set CPU_SHARES for priority management
+2. Implement proper async patterns (no blocking operations)
+3. Add timeouts to all operations
+4. Use external monitoring for health checks
+5. Set mem_limit based on actual usage + buffer
+6. Consider disabling swap for predictable performance
+7. Test failure scenarios before production
+8. Implement graceful degradation
+9. Use multiple worker processes for isolation
+10. Monitor resource usage continuously

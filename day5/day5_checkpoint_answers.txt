@@ -1,0 +1,189 @@
+DAY 5 - CHECKPOINT QUESTIONS ANSWERS
+====================================
+
+QUESTION 1: Why is CPU_SHARES important in multi-AIM nodes?
+------------------------------------------------------------
+
+CPU_SHARES is critical for fair resource distribution in multi-AIM environments.
+
+WHAT IS CPU_SHARES?
+- A relative weight (range: 4-1024) that determines CPU priority
+- NOT a hard limit, but a proportional allocation mechanism
+- Default value: 1024 (if not specified)
+
+WHY IT'S IMPORTANT:
+
+1. FAIR RESOURCE ALLOCATION:
+   - Prevents one AIM from monopolizing CPU
+   - Example: If Node runs 3 AIMs:
+     * AIM-A: CPU_SHARES=1024 (high priority)
+     * AIM-B: CPU_SHARES=512  (medium priority)  
+     * AIM-C: CPU_SHARES=512  (medium priority)
+   - Under load, AIM-A gets 50% CPU, AIM-B gets 25%, AIM-C gets 25%
+
+2. PRIORITY MANAGEMENT:
+   - Critical AIMs get higher shares (more CPU when needed)
+   - Background/low-priority AIMs get lower shares
+   - Ensures important services aren't starved
+
+3. MULTI-TENANT ISOLATION:
+   - In production Nodes running multiple AIMs from different owners
+   - Prevents one poorly-written AIM from degrading others
+   - Each AIM gets proportional CPU based on its shares
+
+4. DYNAMIC BALANCING:
+   - If AIM-A is idle, AIM-B and AIM-C can use its CPU
+   - When AIM-A needs CPU again, it gets priority
+   - Maximizes overall utilization while respecting priorities
+
+OUR TESTING RESULTS:
+- We set CPU_SHARES=512 (medium priority)
+- During infinite loop, AIM consumed 105% CPU (1 full core)
+- This is expected: CPU_SHARES doesn't hard-cap usage
+- If another AIM needed CPU, our AIM would be throttled to 50%
+
+PRODUCTION BEST PRACTICES:
+- Mission-critical AIMs: 768-1024 shares
+- Standard AIMs: 512 shares
+- Background/batch AIMs: 256-512 shares
+- Always set CPU_SHARES to prevent resource starvation
+
+
+QUESTION 2: What is the difference between mem_limit and swap?
+---------------------------------------------------------------
+
+These are two different memory control mechanisms in Docker.
+
+MEM_LIMIT (Memory Limit):
+--------------------------
+
+DEFINITION:
+- Hard limit on RAM (physical memory) a container can use
+- Example: mem_limit: "512m" means max 512 MB of RAM
+
+BEHAVIOR:
+- When limit is reached, container CANNOT allocate more memory
+- Linux kernel triggers OOM (Out Of Memory) killer
+- Container may be killed if it tries to exceed limit
+- Acts as a safety boundary to prevent runaway memory usage
+
+EXAMPLE:
+```
+mem_limit: "1g"  # Container can use max 1 GB RAM
+```
+
+USE CASES:
+- Prevent memory leaks from crashing entire host
+- Ensure fair memory distribution among AIMs
+- Protect critical system memory
+- Predictable resource allocation
+
+
+SWAP (Swap Memory):
+-------------------
+
+DEFINITION:
+- Virtual memory on disk used when RAM is full
+- Slower than RAM but prevents out-of-memory crashes
+- Example: swap: "512m" means max 512 MB of swap space
+
+BEHAVIOR:
+- When RAM limit is hit, data is moved to disk (swapped)
+- Much slower than RAM (100x-1000x slower)
+- Prevents crashes but causes severe performance degradation
+- Total memory = mem_limit + swap
+
+EXAMPLE:
+```
+mem_limit: "1g"
+swap: "512m"
+# Total available: 1.5 GB (1 GB RAM + 512 MB swap)
+```
+
+USE CASES:
+- Temporary memory spikes don't crash container
+- Graceful degradation instead of hard crashes
+- Gives container time to release memory
+- Emergency buffer for memory allocation
+
+
+KEY DIFFERENCES:
+----------------
+
+1. LOCATION:
+   - mem_limit: Physical RAM (fast)
+   - swap: Disk storage (slow)
+
+2. PERFORMANCE:
+   - mem_limit: Full RAM speed
+   - swap: 100x-1000x slower than RAM
+
+3. PURPOSE:
+   - mem_limit: Hard boundary for resource control
+   - swap: Emergency overflow to prevent crashes
+
+4. BEHAVIOR WHEN EXCEEDED:
+   - mem_limit: Container killed by OOM killer
+   - swap: Performance degrades severely but stays alive
+
+5. CONFIGURATION:
+   - mem_limit: Always set in production
+   - swap: Optional, often disabled for performance
+
+
+COMBINED USAGE EXAMPLE:
+------------------------
+
+Conservative (no swap):
+```dockerfile
+LABEL mem_limit="512m"
+LABEL swap="0"
+```
+- Hard limit, no overflow
+- Container killed if exceeded
+- Predictable performance
+
+Flexible (with swap):
+```dockerfile
+LABEL mem_limit="512m"
+LABEL swap="256m"
+```
+- Can use up to 768 MB total
+- Survives memory spikes
+- Performance degrades under pressure
+
+
+PRODUCTION RECOMMENDATIONS:
+----------------------------
+
+FOR PRODUCTION AIMS:
+- Set mem_limit based on expected usage + 20% buffer
+- Disable swap (swap="0") for predictable performance
+- Monitor memory usage to tune limits
+
+FOR DEVELOPMENT/TESTING:
+- Set generous mem_limit
+- Allow some swap for flexibility
+- Use monitoring to understand actual usage
+
+MULTI-AIM NODES:
+- Sum of all mem_limits should be < 80% of host RAM
+- Leave headroom for system processes
+- Use swap sparingly (causes disk I/O contention)
+
+
+OUR DAY 5 TESTING:
+------------------
+- We didn't set explicit mem_limit in Dockerfile
+- Default Docker limit applied (usually host memory)
+- Our AIM used only 20.61 MiB during infinite loop
+- No memory leak observed (good async behavior)
+- In production, would set: mem_limit="256m" for this AIM
+
+
+SUMMARY:
+--------
+- mem_limit: RAM boundary (fast, hard limit)
+- swap: Disk overflow (slow, emergency buffer)
+- Use both wisely for stable multi-AIM deployments
+- Our testing shows proper resource isolation prevents system crashes

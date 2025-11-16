@@ -1,0 +1,75 @@
+DAY 5 - RESOURCE LIMITS & HEALTH CHECKS
+FAILURE BEHAVIOR OBSERVATIONS
+========================================
+
+TEST SETUP:
+-----------
+- AIM: my-hello-aim v1.2
+- Port: 9025
+- Resource Labels:
+  * CPU_SHARES: 512
+  * HEALTH_URI: /health
+  * HEALTH_RETRIES: 3
+  * HEALTH_TIMEOUT: 400ms
+  * HEALTH_INTERVAL: 5000ms
+
+INTENTIONAL BREAK:
+------------------
+- Added /break endpoint with infinite loop (while True: pass)
+- Purpose: Test Node recovery mechanisms
+
+OBSERVED BEHAVIOR:
+------------------
+
+1. CPU CONSUMPTION:
+   - Infinite loop consumed 105.07% CPU (1 full core)
+   - Expected: CPU_SHARES should limit to ~50%, but didn't
+   - Reason: CPU_SHARES sets priority, not hard limits
+   - Container used full CPU share allocated to it
+
+2. MEMORY USAGE:
+   - Stable at 20.61 MiB / 7.756 GiB (0.26%)
+   - No memory leak from infinite loop
+   - Good: Resource limit would prevent runaway memory
+
+3. ENDPOINT BLOCKING:
+   - /break endpoint hung forever (expected)
+   - /health endpoint ALSO hung (blocked by infinite loop)
+   - /run endpoint blocked as well
+   - Finding: Single blocking request freezes entire AIM server
+   - This is because uvicorn async server has limited worker threads
+
+4. HEALTH CHECK FAILURES:
+   - Health checks were defined in Docker labels
+   - No health check failure logs in Node Manager
+   - Container stayed "Up" for 5+ minutes while completely frozen
+   - Finding: Health checks did NOT trigger automatic recovery
+
+5. NODE RECOVERY BEHAVIOR:
+   - Manual intervention required (docker restart)
+   - After restart: All endpoints recovered immediately
+   - No automatic restart/kill by Node Manager
+   - Finding: This Node version doesn't auto-recover from failed health checks
+
+KEY LEARNINGS:
+--------------
+1. CPU_SHARES sets priority, not hard limits
+2. Async servers can be blocked by infinite loops
+3. Health check labels are documented but may not auto-recover in all Node versions
+4. Manual restart recovers AIM successfully
+5. Memory limits prevent crashes, CPU limits prevent starvation
+
+PRODUCTION RECOMMENDATIONS:
+---------------------------
+1. Use proper async programming (avoid blocking operations)
+2. Implement timeouts on all operations
+3. Monitor health endpoints externally
+4. Set up automatic restart policies
+5. Use multiple worker processes for better isolation
+6. Test resource limits before production deployment
+
+RECOVERY PROCESS:
+-----------------
+Command used: sudo docker restart c7447118eb6b
+Result: Full recovery - all endpoints functional
+Time to recover: ~5 seconds
