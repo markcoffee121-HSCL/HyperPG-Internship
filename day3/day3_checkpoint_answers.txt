@@ -1,0 +1,41 @@
+=== DAY 3 CHECKPOINT QUESTIONS ===
+
+Question 1: What field in the manifest tells the node how to start the AIM?
+---------------------------------------------------------------------------
+
+Answer: The manifest doesn't directly tell the node how to start the AIM. Instead, the Docker image itself contains the startup instructions through the CMD directive in the Dockerfile:
+
+    CMD ["python", "./app/main.py"]
+
+However, the manifest provides metadata that the node uses to manage the AIM:
+
+1. HEALTH_URI label: Tells the node where to check if the AIM is running ("/health")
+2. ENV_VARS label: Specifies environment variables needed for the AIM to start correctly
+3. PORT exposure: The Dockerfile exposes port 4000, which the node maps to external port 9010
+
+The actual startup sequence is:
+1. Node pulls the Docker image from the registry (localhost:5000/hello-aim:latest)
+2. Node reads Docker labels to configure the container
+3. Node runs the container using Docker, which executes the CMD directive
+4. Node monitors health using the HEALTH_URI endpoint
+
+Question 2: What happens if the health endpoint fails?
+-------------------------------------------------------
+
+Answer: Based on the Docker labels in our AIM and the node's behavior:
+
+LABEL HEALTH_URI="/health"
+LABEL HEALTH_RETRIES="3"
+LABEL HEALTH_TIMEOUT="2000"
+LABEL HEALTH_INTERVAL="5000"
+
+If the health endpoint fails:
+
+1. The node will retry the health check up to 3 times (HEALTH_RETRIES="3")
+2. Each retry waits 2000ms (2 seconds) for a response (HEALTH_TIMEOUT="2000")
+3. Retries are spaced 5000ms (5 seconds) apart (HEALTH_INTERVAL="5000")
+4. After all retries fail, the AIM status changes from "running" to "unhealthy" or "failed"
+5. The node may attempt to restart the container automatically depending on configuration
+6. The AIM slot remains occupied but non-functional until manually removed or restarted
+
+This health check mechanism ensures the node can detect and respond to AIM failures automatically, maintaining service reliability.

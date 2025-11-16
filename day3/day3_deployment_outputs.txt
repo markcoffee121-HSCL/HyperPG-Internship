@@ -1,0 +1,67 @@
+=== DAY 3: DEPLOY A PREBUILT AIM (LOCAL) ===
+
+1. Docker Image Build
+---------------------
+Command: sudo docker build -t hello-aim:latest .
+Status: Successfully built
+Image ID: d00f7375f9da
+
+2. Local Registry Setup
+-----------------------
+Command: sudo docker run -d -p 5000:5000 --restart always --name registry registry:latest
+Status: Running
+
+3. Push to Local Registry
+-------------------------
+Command: sudo docker push localhost:5000/hello-aim:latest
+Output: latest: digest: sha256:d00f7375f9da714537f29fabe0a52ab3e0dc893770a39b55819a922acdf05daa size: 856
+
+4. AIM Deployment
+-----------------
+Command: curl -X POST 'localhost:8005/add_aim' --header 'Content-Type: application/json' --data '{"name": "hello-aim", "tag": "latest", "port": "9010", "environment": {"PORT": "4000"}}'
+Response: {"_id":9010,"image_id":null,"image_name":"hello-aim","image_tag":"latest","status":"offline","whitelisted":true}
+
+5. AIM Status Check
+-------------------
+Command: curl -X GET localhost:8005/list_aims
+Response: [{"image_id":"d00f7375f9da714537f29fabe0a52ab3e0dc893770a39b55819a922acdf05daa","image_name":"hello-aim","image_tag":"latest","status":"running","whitelisted":false,"labels":{"GPUS":"0","HEALTH_INTERVAL":"5000","HEALTH_RETRIES":"3","HEALTH_TIMEOUT":"2000","HEALTH_URI":"/health","description":"Hello AIM test service for HyperPG internship Day 3"},"container_id":"6c3946374fc4","slot":10,"port":9010}]
+
+6. Health Check Endpoint Test
+------------------------------
+Command: curl -X GET localhost:9010/health
+Response: {"status":"healthy"}
+
+7. Root Endpoint Test
+---------------------
+Command: curl -X GET localhost:9010/
+Response: {"message":"Hello from AIM!"}
+
+8. Greet Endpoint Test
+----------------------
+Command: curl -X GET "localhost:9010/greet?name=Raijin"
+Response: {"message":"Hello, Raijin!"}
+
+9. Manifest Endpoint Test
+--------------------------
+Command: curl -X GET localhost:9010/manifest.json
+Response: {"name":"Hello AIM Test Service","short_name":"hello-aim","version":"0.1.0","documentation_url":"https://example.com/docs","license":"MIT","terms_of_service":"","author":"HyperPG Intern","endpoints":[...]}
+
+
+
+VM terminal :
+markcoffee@markcoffee-VirtualBox:~/hello-aim$ curl -X POST 'localhost:8005/add_aim' \8005/add_aim' \
+--header 'Content-Type: application/json' \
+--data '{
+    "name": "hello-aim",
+    "tag": "latest",
+    "port": "9010",
+    "environment": {
+        "PORT": "4000"
+    }
+}'
+{"_id":9010,"image_id":null,"image_name":"hello-aim","image_tag":"latest","statumarkcoffee@markcoffee-VirtualBox:~/hello-aim$ curl -X GET localhost:8005/list_aimso-aim$ curl -X GET localhost:8005/list_aims
+[{"image_id":"d00f7375f9da714537f29fabe0a52ab3e0dc893770a39b55819a922acdf05daa","image_name":"hello-aim","image_tag":"latest","status":"running","whitelisted":false,"labels":{"GPUS":"0","HEALTH_INTERVAL":"5000","HEALTH_RETRIES":"3","HEALTH_TIMEOUT":"2000","HEALTH_URI":"/health","description":"Hello AIM test service for HyperPG internship Day 3"},"container_id":"6c3946374fc4","slot":10,"port":9010}]markcoffee@markcoffee-VirtualBox:~/hello-aim$curl -X GET localhost:9010/healthh
+{"status":"healthy"}markcoffee@markcoffee-VirtualBox:~/hello-aim$ curl -X GET locurl -X GET localhost:9010/
+markcoffee@markcoffee-VirtualBox:~/hello-aim$ curl -X GET "localhost:9010/greet?name=Raijin"lhost:9010/greet?name=Raijin"
+markcoffee@markcoffee-VirtualBox:~/hello-aim$ curl -X GET localhost:9010/manifest.jsonlocalhost:9010/manifest.json
+{"name":"Hello AIM Test Service","short_name":"hello-aim","version":"0.1.0","documentation_url":"https://example.com/docs","license":"MIT","terms_of_service":"","author":"HyperPG Intern","endpoints":[{"uri":"/","input_methods":["GET"],"input_query":{},"input_body":{},"output":{"message":"<string>"},"documentation":"Returns a welcome message.","example_calls":[{"method":"GET","query":"","output":{"message":"Hello from AIM!"}}],"is_public":true},{"uri":"/greet","input_methods":["GET"],"input_query":{"name":"<string>"},"input_body":{},"output":{"message":"<string>"},"documentation":"Returns a personalized greeting.","example_calls":[{"method":"GET","query":"?name=World","output":{"message":"Hello, World!"}}],"is_public":true},{"uri":"/health","input_methods":["GET"],"input_query":{},"input_body":{},"output":{"status":"<string>"},"documentation":"Health check endpoint.","example_calls":[{"method":"GET","query":"","output":{"status":"healthy"}}],"is_public":true},{"uri":"/manifest.json","input_methods":["GET"],"input_query":{},"input_body":{},"output":{"manifest":"<object>"},"documentation":"Returns the AIM manifest.","example_calls":[{"method":"GET","query":"","output":{"status":"healthy"}}],"is_public":true}]}markcoffee@markcoffee-VirtualBox:~/hello-aim$ 

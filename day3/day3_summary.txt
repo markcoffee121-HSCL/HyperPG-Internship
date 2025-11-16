@@ -1,0 +1,95 @@
+== DAY 3: DEPLOY A PREBUILT AIM (LOCAL) - SUMMARY ===
+
+Project: HyperPG Internship - Day 3
+Date: November 15, 2025
+Objective: Deploy an existing AIM to a local Hypercycle Node
+
+TASKS COMPLETED:
+----------------
+
+1. Built Custom AIM Docker Image
+   - Created Python FastAPI application with required endpoints
+   - Implemented /health, /manifest.json, /, and /greet endpoints
+   - Configured Dockerfile with proper labels for health checks
+   - Built image: hello-aim:latest
+
+2. Set Up Local Docker Registry
+   - Started local registry on port 5000
+   - Tagged and pushed AIM image to localhost:5000
+   - Configured node to use local registry (aim_registry: localhost:5000)
+
+3. Fixed Node Port Configuration
+   - Identified port conflict issue (main server and admin backend both trying to use 8005)
+   - Updated config.yaml with proper port assignments:
+     * node_port: 8000 (main server)
+     * admin_port: 8005 (admin backend)
+     * merkling_port: 8007 (merkle service)
+   - All three services now running correctly
+
+4. Deployed AIM to Node
+   - Used admin API endpoint: POST localhost:8005/add_aim
+   - AIM deployed to slot 10, external port 9010
+   - Container ID: 6c3946374fc4
+   - Status: running
+
+5. Verified Health Check
+   - Endpoint: GET localhost:9010/health
+   - Response: {"status":"healthy"}
+   - All endpoints tested and working
+
+DELIVERABLES:
+-------------
+✓ manifest.json committed to repo
+✓ Screenshot of successful /health check
+✓ Checkpoint questions answered
+✓ Full deployment outputs documented
+
+KEY LEARNINGS:
+--------------
+
+1. AIM Architecture:
+   - AIMs are Docker containers with HTTP servers
+   - Must implement /manifest.json and /health endpoints
+   - Docker labels configure node behavior (health checks, GPU requirements, etc.)
+
+2. Node Manager Architecture:
+   - Three separate services: main server, admin backend, merkle service
+   - Admin backend (port 8005) handles AIM management
+   - Local Docker registry enables development without external dependencies
+
+3. Deployment Process:
+   - Build Docker image with proper structure
+   - Push to accessible registry (local or remote)
+   - Use node API to register and deploy AIM
+   - Node handles download, health checks, and lifecycle management
+
+4. Health Check Mechanism:
+   - Configured via Docker labels (URI, retries, timeout, interval)
+   - Node automatically monitors AIM health
+   - Failed health checks trigger automatic recovery attempts
+
+CHALLENGES SOLVED:
+------------------
+
+1. Port Conflicts:
+   - Problem: Admin backend couldn't start (port 8005 conflict)
+   - Solution: Separated ports for each service in config.yaml
+
+2. Registry Access:
+   - Problem: Node tried to pull from remote registry
+   - Solution: Set up local registry and updated aim_registry config
+
+3. Image Naming:
+   - Problem: Node expected hypercycle/ prefix
+   - Solution: Tagged image appropriately and pushed to local registry
+
+NEXT STEPS:
+-----------
+- Day 4: Build custom AIMs with specific functionality
+- Explore multi-AIM deployments
+- Learn about AIM payment structures and authentication
+
+REPOSITORY:
+-----------
+GitHub: markcoffee121-HSCL/day3-deploy-aim-deliverables
+All source code, manifests, and documentation included
