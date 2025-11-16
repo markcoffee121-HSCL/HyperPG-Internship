@@ -1,0 +1,71 @@
+DAY 4 - CHECKPOINT ANSWERS
+==========================
+
+QUESTION 1: What is the difference between EXPOSE and CMD in Docker?
+--------------------------------------------------------------------
+
+EXPOSE:
+- EXPOSE is a documentation directive that indicates which ports the container listens on
+- It does NOT actually publish or open the port - it's informational only
+- Syntax: EXPOSE <port>
+- Example: EXPOSE 4000
+- Purpose: Informs users and tools (like docker-compose) about intended port usage
+- Does not make the port accessible from outside the container
+
+CMD:
+- CMD defines the default command that runs when the container starts
+- It specifies what executable runs inside the container
+- Syntax: CMD ["executable", "param1", "param2"]
+- Example: CMD ["python3", "main.py"]
+- Purpose: Tells Docker what process to run when the container launches
+- There can only be one CMD instruction in a Dockerfile (last one wins)
+
+KEY DIFFERENCE:
+- EXPOSE = Documentation of which ports the container uses (passive)
+- CMD = The actual command/process to execute (active)
+
+In our Day 4 AIM:
+- EXPOSE 4000 → Documents that our AIM listens on port 4000
+- CMD ["python3", "main.py"] → Actually starts our Python server
+
+
+QUESTION 2: When does a Node mark an AIM as unhealthy?
+-------------------------------------------------------
+
+The Node uses health checks to monitor AIM status and marks an AIM as unhealthy when:
+
+1. HEALTH CHECK FAILURES:
+   - The AIM fails to respond to health check requests
+   - Health endpoint returns non-200 status codes
+   - Health check timeout is exceeded (defined by HEALTH_TIMEOUT label)
+   - Number of consecutive failures exceeds HEALTH_RETRIES
+
+2. CONTAINER ISSUES:
+   - Container fails to start
+   - Container exits/crashes unexpectedly
+   - Container becomes unresponsive
+
+3. ENDPOINT FAILURES:
+   - Required endpoints (like /manifest.json) don't respond
+   - Endpoints return errors consistently
+   - Network connectivity issues between Node and AIM
+
+4. RESOURCE PROBLEMS:
+   - Container exceeds memory limits
+   - GPU allocation fails (if GPUS label specified)
+   - Port conflicts prevent container startup
+
+Health Check Configuration (via Docker labels):
+- HEALTH_URI: Path to health endpoint (e.g., "/health")
+- HEALTH_RETRIES: Number of allowed failures (e.g., "3")
+- HEALTH_TIMEOUT: Timeout per check in milliseconds (e.g., "400")
+- HEALTH_INTERVAL: Time between checks in milliseconds (e.g., "400")
+
+Example from our AIM:
+Our current AIM doesn't implement explicit health checks, so the Node monitors:
+- Container running status
+- Endpoint accessibility (/manifest.json, /run)
+- Response times and error rates
+
+Best Practice:
+Implement a dedicated /health endpoint that returns {"status":"healthy"} for robust monitoring.
