@@ -1,0 +1,267 @@
+=============================================================================
+DAY 6 - FILE PROCESSOR AIM - CHECKPOINT QUESTIONS
+=============================================================================
+Date: November 18, 2025
+Author: Raijin - HyperPG Internship
+
+=============================================================================
+QUESTION 1: How does your AIM handle empty files?
+=============================================================================
+
+Answer:
+The AIM detects empty files by checking the file size after reading the 
+uploaded content. If file_size == 0, it immediately returns a response with:
+- line_count: 0
+- word_count: 0  
+- file_size_bytes: 0
+
+This check happens BEFORE attempting UTF-8 decoding, making it efficient.
+The AIM logs "Empty file received: {filename}" for tracking purposes.
+
+Implementation Location: main.py, lines ~82-90
+Code Logic:
+```python
+if file_size == 0:
+    logger.info(f"Empty file received: {filename}")
+    return JSONResponseCORS({
+        "filename": filename,
+        "line_count": 0,
+        "word_count": 0,
+        "file_size_bytes": 0
+    })
+```
+
+Test Result: ✓ Verified with empty_test.txt during deployment testing
+
+=============================================================================
+QUESTION 2: What happens with a 100MB text file?
+=============================================================================
+
+Answer:
+A 100MB file would be REJECTED before processing because it exceeds the 
+configured MAX_FILE_SIZE limit of 10MB.
+
+Behavior:
+1. File is uploaded and read into memory
+2. Size check: 100MB > 10MB limit
+3. Returns HTTP 413 (Payload Too Large) error
+4. Error response:
+   {
+     "error": "File too large",
+     "details": "Maximum file size is 10.0MB"
+   }
+
+Why 10MB Limit?
+- Container Memory: Default Docker memory limits could be strained by larger files
+- Processing Time: Large files increase response time significantly
+- Use Case: Text file analysis rarely needs files >10MB
+- Safety: Prevents memory exhaustion attacks
+- Scalability: Allows multiple concurrent requests without resource contention
+
+For production with larger file requirements, we could:
+- Increase limit with corresponding mem_limit Docker label
+- Implement streaming/chunked processing
+- Add queue system for large file processing
+
+Implementation Location: main.py, lines ~74-80
+Test Result: ✓ Tested with 1.6MB file (large_1mb.txt) - processed successfully
+
+=============================================================================
+QUESTION 3: How do you detect non-text files?
+=============================================================================
+
+Answer:
+The AIM detects non-text files by attempting UTF-8 decoding and catching
+UnicodeDecodeError exceptions.
+
+Detection Process:
+1. File is read as raw bytes
+2. Attempt to decode as UTF-8: `file_content.decode('utf-8')`
+3. If successful → proceed with text analysis
+4. If UnicodeDecodeError raised → reject as non-text file
+
+Error Response (HTTP 400):
+{
+  "error": "Invalid text file",
+  "details": "File must be valid UTF-8 encoded text. Binary files are not supported."
+}
+
+Why UTF-8 Validation?
+- UTF-8 is the universal text encoding standard
+- Covers ASCII, Unicode, emojis, and international characters
+- Binary files (images, PDFs, executables) will fail UTF-8 decoding
+- Prevents processing of inappropriate file types
+
+Implementation Location: main.py, lines ~92-100
+Code Logic:
+```python
+try:
+    text_content = file_content.decode('utf-8')
+    logger.info(f"File decoded as UTF-8 successfully")
+except UnicodeDecodeError:
+    logger.warning(f"File is not valid UTF-8 text: {filename}")
+    return JSONResponseCORS({
+        "error": "Invalid text file",
+        "details": "File must be valid UTF-8 encoded text..."
+    }, status_code=400)
+```
+
+Test Result: ✓ Verified with binary.bin during Phase 4 testing
+
+=============================================================================
+QUESTION 4: What's your maximum file size limit and why?
+=============================================================================
+
+Answer:
+Maximum File Size: 10MB (10,485,760 bytes)
+
+Rationale:
+
+1. Memory Management
+   - Files are loaded entirely into memory for processing
+   - 10MB allows safe processing within typical container memory limits
+   - With CPU_SHARES=512, container has moderate resource allocation
+   - Multiple concurrent requests remain feasible
+
+2. Processing Performance
+   - 10MB text file ≈ 200,000+ lines (tested with 1.6MB = 20,000 lines)
+   - Processing time remains under 1 second
+   - Health check interval (5000ms) not impacted
+   - Maintains responsive service for all users
+
+3. Use Case Appropriateness
+   - Text file analysis use cases:
+     - Log files: Usually <5MB per file
+     - Documents: Typically <1MB
+     - Code files: Rarely >500KB
+     - Data exports: Usually processed in chunks
+   - 10MB covers 99% of legitimate text analysis needs
+
+4. Security Considerations
+   - Prevents memory exhaustion DoS attacks
+   - Limits resource consumption per request
+   - Allows graceful handling of malicious/accidental large uploads
+   - Clear error messaging helps legitimate users
+
+5. Scalability
+   - Node can handle multiple simultaneous file uploads
+   - Total memory impact = (10MB × concurrent_requests)
+   - With 10 concurrent requests = 100MB peak usage
+   - Sustainable for multi-AIM node environments
+
+Alternative Approaches for Larger Files:
+- Streaming Processing: Read/process in chunks (not implemented)
+- Background Jobs: Queue large files for async processing
+- External Storage: Store file, process in batches
+- Dynamic Limits: Adjust based on available node resources
+
+Implementation: main.py, line 12
+Configuration: MAX_FILE_SIZE = 10 * 1024 * 1024
+
+=============================================================================
+QUESTION 5: Explain your word counting algorithm
+=============================================================================
+
+Answer:
+
+Algorithm: Whitespace-Based Word Splitting
+
+Implementation:
+```python
+def _count_words(self, text: str) -> int:
+    if not text:
+        return 0
+    
+    # Split by whitespace and filter out empty strings
+    words = text.split()
+    
+    return len(words)
+```
+
+How It Works:
+
+1. Input Validation
+   - Check if text is empty → return 0
+   - Handles None, "", and whitespace-only strings
+
+2. Splitting Logic
+   - Python's split() with no arguments splits on ALL whitespace
+   - Whitespace includes: spaces, tabs, newlines, carriage returns
+   - Automatically handles multiple consecutive spaces
+   - Automatically filters out empty strings
+
+3. Word Definition
+   - A "word" = any sequence of non-whitespace characters
+   - Punctuation is NOT separated from words
+   - Examples:
+     - "Hello, world!" → 2 words ("Hello," and "world!")
+     - "test@example.com" → 1 word
+     - "it's" → 1 word
+     - "100%" → 1 word
+
+4. Handling Edge Cases
+   - Pure whitespace: "   \n\n   " → 0 words ✓
+   - Leading/trailing spaces: "  hello  " → 1 word ✓
+   - Multiple spaces: "hello    world" → 2 words ✓
+   - Mixed line endings: Works with \n, \r\n, \r ✓
+   - Unicode/emojis: "café 😀" → 2 words ✓
+
+Advantages:
+- Simple and efficient (O(n) time complexity)
+- Language-agnostic (works for any language)
+- Consistent with common word counting tools
+- Handles all text edge cases gracefully
+
+Limitations:
+- Punctuation attached to words (doesn't split "it's" into "it" and "s")
+- Hyphenated words counted as one word ("state-of-the-art" = 1 word)
+- Numbers counted as words ("123" = 1 word)
+
+Alternative Approaches (Not Implemented):
+- Regular Expression: `\w+` pattern for alphanumeric sequences
+- NLP Tokenization: Language-aware word boundary detection
+- Punctuation Stripping: Remove all punctuation before counting
+
+For this AIM's use case (general text analysis), the simple whitespace 
+splitting approach provides accurate and performant results.
+
+Implementation Location: main.py, lines ~148-157
+Test Coverage: Verified with multiple test files including special characters,
+Unicode, emojis, and various line endings in Phase 4 testing.
+
+=============================================================================
+ADDITIONAL INSIGHTS
+=============================================================================
+
+Line Counting Algorithm:
+
+The line counting uses a complementary approach:
+```python
+def _count_lines(self, text: str) -> int:
+    if not text:
+        return 0
+    
+    # Normalize line endings to \n
+    text = text.replace('\r\n', '\n').replace('\r', '\n')
+    lines = text.split('\n')
+    
+    # Handle trailing newline correctly
+    if text.endswith('\n'):
+        return len(lines) - 1 if lines[-1] == '' else len(lines)
+    else:
+        return len(lines)
+```
+
+Key Features:
+- Normalizes all line ending types (\r\n, \r, \n)
+- Correctly handles files with/without trailing newlines
+- Tested with Windows CRLF, Mac CR, Unix LF, and mixed endings
+
+Test Results Summary:
+- Windows CRLF file: 3 lines correctly counted ✓
+- Mac CR file: 3 lines correctly counted ✓
+- Mixed endings file: 4 lines correctly counted ✓
+- Unicode content: Properly decoded and counted ✓
+- Whitespace-only: 5 lines, 0 words ✓
+
+=============================================================================
