@@ -1,0 +1,3 @@
+git+https://github.com/hypercycle-development/pyhypercycle-aim.git#egg=pyhypercycle_aim
+httpx==0.27.0
+python-multipart==0.0.9
