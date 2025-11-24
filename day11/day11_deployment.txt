@@ -1,0 +1,47 @@
+cd /media/sf_HyperPG-Internship/day11
+nano day11_deployment.txt
+```
+
+Paste this:
+```
+=== DAY 11: LOAD TESTING & PERFORMANCE MONITORING ===
+
+OBJECTIVE: Stress-test AIMs and analyze performance under load
+
+TOOLS INSTALLED:
+- Apache Bench (ab) for load testing
+
+TEST 1 - Simple AIM (hello-aim, port 9010):
+Command: ab -n 200 -c 10 http://localhost:9010/greet?name=LoadTest
+Results:
+  - Complete requests: 200
+  - Time taken: 0.522 seconds
+  - Requests per second: 383.47 [#/sec]
+  - Time per request: 26.078 [ms] (mean)
+  - 100% success rate
+
+TEST 2 - LLM AIM (llm-summarizer-aim, port 9040):
+Command: ab -n 200 -c 10 -p /tmp/llm_test.json -T application/json http://localhost:9040/summarize
+Results:
+  - Complete requests: 200
+  - Time taken: 418.227 seconds (~7 minutes)
+  - Requests per second: 0.48 [#/sec]
+  - Time per request: 20,911.356 [ms] (mean)
+  - Failed requests: 198 (length variations in responses)
+
+KEY FINDINGS:
+1. Simple local processing: 383 req/sec
+2. External API calls (Groq LLM): 0.48 req/sec (800x slower)
+3. Groq API rate limiting detected: "429 Too Many Requests" with 2-second retries
+4. External API dependencies are major performance bottlenecks
+
+LOGS ANALYZED:
+- Container logs showed rate limiting on almost every concurrent request
+- Groq client automatically retries with exponential backoff
+- Each retry adds 2+ seconds to response time
+
+PRODUCTION INSIGHTS:
+- External APIs require rate limit consideration in architecture
+- Caching strategies needed for LLM responses
+- Paid API tiers may be required for production load
+- Async queue systems better than synchronous calls for rate-limited APIs
