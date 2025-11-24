@@ -1,0 +1,60 @@
+=== DAY 12: SECURITY HARDENING ===
+
+OBJECTIVE: Add API key authentication and rate limiting to AIMs
+
+TECHNOLOGIES USED:
+- pyhypercycle_aim for AIM server framework
+- Custom API key validation
+- In-memory rate limiting (10 requests/minute per IP)
+- Request validation for POST endpoints
+
+SECURITY FEATURES IMPLEMENTED:
+
+1. API Key Authentication:
+   - Valid keys stored in environment variables (API_KEY_1, API_KEY_2, API_KEY_3)
+   - Keys validated via X-API-Key header
+   - Returns 401 Unauthorized for missing/invalid keys
+
+2. Rate Limiting:
+   - 10 requests per minute per IP address
+   - In-memory counter with automatic cleanup
+   - Returns 429 Too Many Requests when limit exceeded
+
+3. Request Validation:
+   - POST endpoints validate JSON structure
+   - Required field checking
+   - Data type validation
+   - Returns 400 Bad Request for invalid data
+
+4. Public vs Protected Endpoints:
+   - /public/info: No authentication required
+   - /protected/greet: Requires valid API key
+   - /protected/process: Requires valid API key + JSON validation
+
+DEPLOYMENT:
+- Image: secured-aim:1.0
+- Port: 9045 (external) -> 4000 (internal)
+- Slot: 45
+- Environment variables: PORT, API_KEY_1, API_KEY_2, API_KEY_3
+
+TESTING RESULTS:
+✓ Public endpoint accessible without auth
+✓ Protected endpoints block requests without API key (401)
+✓ Protected endpoints accept valid API keys
+✓ Protected endpoints reject invalid API keys (401)
+✓ Rate limiting blocks after 10 requests per minute (429)
+✓ POST endpoint validates JSON structure (400 on error)
+
+LESSONS LEARNED:
+1. ALWAYS use pyhypercycle_aim - NEVER import FastAPI directly
+2. Rate limiting should count ALL requests (even failed auth) to prevent abuse
+3. In-memory rate limiting is simple but doesn't persist across container restarts
+4. Environment variables are the secure way to pass API keys to containers
+5. Clear error messages help API consumers understand what went wrong
+
+PRODUCTION CONSIDERATIONS:
+- For production, use Redis or similar for distributed rate limiting
+- Consider JWT tokens instead of static API keys
+- Add request logging for security auditing
+- Implement graduated rate limits (different limits for different endpoints)
+- Add API key rotation mechanism
