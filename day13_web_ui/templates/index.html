@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HyperPG AIM Web Interface</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>HyperPG AIM Web Interface</h1>
+            <p class="subtitle">File Processing & Summarization</p>
+        </header>
+
+        <main>
+            <div class="upload-section">
+                <h2>Upload Text File</h2>
+                <div class="upload-area" id="uploadArea">
+                    <input type="file" id="fileInput" accept=".txt" hidden>
+                    <div class="upload-content">
+                        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                        </svg>
+                        <p class="upload-text">Click to upload or drag and drop</p>
+                        <p class="upload-hint">Text files only (max 10MB)</p>
+                        <p class="file-info" id="fileInfo" style="display: none;"></p>
+                    </div>
+                </div>
+                
+                <div class="button-group">
+                    <button id="processBtn" class="btn btn-primary" disabled>
+                        Process File
+                    </button>
+                    <button id="clearBtn" class="btn btn-secondary" style="display: none;">
+                        Upload Another File
+                    </button>
+                </div>
+            </div>
+
+            <div class="processing-steps" id="processingSteps" style="display: none;">
+                <div class="step" id="step1">
+                    <div class="step-icon">
+                        <div class="step-spinner"></div>
+                    </div>
+                    <div class="step-content">
+                        <h4>Step 1: Analyzing File</h4>
+                        <p>Processing with File Processor AIM...</p>
+                    </div>
+                </div>
+                <div class="step" id="step2">
+                    <div class="step-icon">
+                        <div class="step-spinner"></div>
+                    </div>
+                    <div class="step-content">
+                        <h4>Step 2: Generating Summary</h4>
+                        <p>Processing with Summarizer AIM and Groq AI...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="results-section" id="resultsSection" style="display: none;">
+                <h2>Results</h2>
+                
+                <div class="result-card">
+                    <h3>File Analysis</h3>
+                    <div id="analysisResult" class="result-content"></div>
+                </div>
+
+                <div class="result-card">
+                    <h3>AI Summary</h3>
+                    <div id="summaryResult" class="result-content"></div>
+                </div>
+
+                <div class="info-banner">
+                    <svg class="info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="16" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                    <p>Files larger than ~5KB may exceed Groq's token limits and show fallback summaries.</p>
+                </div>
+            </div>
+
+            <div class="loading" id="loadingIndicator" style="display: none;">
+                <div class="spinner"></div>
+                <p id="loadingText">Processing your file...</p>
+            </div>
+        </main>
+
+        <footer>
+            <p>HyperPG Internship - Day 13 | Status: <span id="statusIndicator" class="status-ok">Checking...</span></p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
