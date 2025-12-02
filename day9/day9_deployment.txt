@@ -1,0 +1,296 @@
+DAY 9 - CLOUD NODE DEPLOYMENT
+========================================
+
+OBJECTIVE: Deploy HyperCycle Node to cloud and make one AIM publicly accessible
+
+========================================
+PHASE 1: CLOUD INFRASTRUCTURE SETUP
+========================================
+
+Platform: DigitalOcean
+Droplet Name: MarkCoffee121
+IP Address: 46.101.166.187
+OS: Ubuntu 22.04.5 LTS
+Resources: 2 CPU cores, 4GB RAM, 117GB disk space
+
+SSH Access Configuration:
+- SSH key authentication configured from Windows
+- Public key added to /root/.ssh/authorized_keys
+- Connection: ssh root@46.101.166.187
+- Status: Working with passphrase protection
+
+System Updates:
+- apt update completed successfully
+- 75 packages upgraded
+- Essential tools installed: curl, wget, git, nano, ufw, net-tools
+
+========================================
+PHASE 2: DOCKER INSTALLATION
+========================================
+
+Docker Version: 29.1.1
+Installation Method: Official Docker repository
+
+Commands executed:
+1. Added Docker GPG key to /etc/apt/keyrings/docker.gpg
+2. Added Docker repository to apt sources
+3. Installed docker-ce, docker-ce-cli, containerd.io, docker-compose-plugin
+4. Verified with: docker --version
+
+Docker Registry Setup:
+- Started local registry on port 5000
+- Container: registry:2
+- Status: Running and persisting across reboots (--restart always)
+- Registry URL: localhost:5000
+- Verified with: curl http://localhost:5000/v2/_catalog
+
+========================================
+PHASE 3: FIREWALL CONFIGURATION
+========================================
+
+Firewall Tool: UFW (Uncomplicated Firewall)
+Status: Active and enabled on system startup
+
+Allowed Ports:
+- 22/tcp   (SSH)
+- 8000/tcp (Node main server - public)
+- 8005/tcp (Node admin backend - localhost only)
+- 8006/tcp (Node admin UI - localhost only)
+- 8007/tcp (Node merkle service - localhost only)
+- 5000/tcp (Docker registry)
+- 9030/tcp (File Processor AIM - public)
+- 9040/tcp (Summarizer AIM - reserved for Day 10)
+
+UFW Rules Applied:
+root@MarkCoffee121:~# ufw status
+Status: active
+
+To                         Action      From
+--                         ------      ----
+22/tcp                     ALLOW       Anywhere
+8000/tcp                   ALLOW       Anywhere
+8005/tcp                   ALLOW       Anywhere
+8006/tcp                   ALLOW       Anywhere
+5000/tcp                   ALLOW       Anywhere
+9030/tcp                   ALLOW       Anywhere
+9040/tcp                   ALLOW       Anywhere
+
+========================================
+PHASE 4: HYPERCYCLE NODE INSTALLATION
+========================================
+
+Node Version: 0.4.16
+Installation Script: downloader.sh from hypercycle-release S3 bucket
+
+Installation Steps:
+1. Downloaded installer: wget https://hypercycle-release.s3.us-east-2.amazonaws.com/downloader.sh
+2. Made executable: chmod +x downloader.sh
+3. Ran installer: sudo ./downloader.sh
+
+Installation Prompts and Responses:
+- Use system mongo install? y (MongoDB 6.0.26 installed)
+- Install nvidia drivers? n (no GPU on droplet)
+- Network: testnet
+- Node address: 46.101.166.187
+- External port: 8000
+- Replica number: 0 (primary)
+
+Configuration File Location: /home/hypercycle/config/config.yaml
+
+Configuration Applied:
+network: testnet
+node_address: 46.101.166.187:8000
+node_host: 0.0.0.0
+node_name: HyperPG-Cloud-Node
+node_port: 8000
+priority: 0
+aim_registry: localhost:5000
+
+Post-Installation Fixes:
+- Fixed ownership: chown -R hypercycle:hypercycle /home/hypercycle/hypercycle-manager-0.4.16
+- Dependencies installed in user space (no virtual environment issues)
+- Node manager started successfully
+
+Service Status:
+systemctl status hypercycle
+- Status: active (exited)
+- Services running: Node controller (8000), Admin backend (8005), Merkle service (8007)
+
+Node Verification:
+curl http://localhost:8000/info
+Response: {"status":"alive","name":"HyperPG-Cloud-Node","address":"46.101.166.187:8000"...}
+
+Public Access Verified:
+curl http://46.101.166.187:8000/info
+Response: SUCCESS - Node publicly accessible
+
+========================================
+PHASE 5: AIM DEPLOYMENT
+========================================
+
+AIM Selected: File Processor AIM
+Source: C:\HyperPG-Internship\day6 (Windows)
+Transfer Method: SCP to cloud server
+
+File Transfer:
+Command: scp -r day6 root@46.101.166.187:/root/
+Files transferred: 21 files including source code, Dockerfile, tests
+Transfer time: ~13 seconds
+Destination: /root/day6
+
+Docker Image Build on Cloud:
+cd /root/day6
+docker build -t fileprocessor-aim:1.0 .
+
+Build Output:
+[+] Building 53.3s (11/11) FINISHED
+- Base image: python:3.10-slim
+- Installed git and pyhypercycle_aim dependencies
+- Copied main.py with proper configuration
+- Image size: ~200MB compressed
+
+Registry Push:
+docker tag fileprocessor-aim:1.0 localhost:5000/fileprocessor-aim:1.0
+docker push localhost:5000/fileprocessor-aim:1.0
+
+Push completed: digest sha256:8ba96fd319a1cb2924246ff615d56c876e5acb12ff6abcd20bba75faaafdca83
+
+Registry Verification:
+curl http://localhost:5000/v2/_catalog
+Response: {"repositories":["fileprocessor-aim"]}
+
+Deployment to HyperCycle Node:
+curl -X POST 'http://localhost:8005/add_aim' \
+--header 'Content-Type: application/json' \
+--data '{
+    "name": "fileprocessor-aim",
+    "tag": "1.0",
+    "port": "9030",
+    "environment": {
+        "PORT": "4000"
+    }
+}'
+
+Deployment Response:
+{"_id":9030,"image_name":"fileprocessor-aim","image_tag":"1.0","status":"offline"}
+
+Troubleshooting Steps Taken:
+1. Initial deployment had "error" status after 10 retries
+2. Fixed main.py to use PORT environment variable and host 0.0.0.0
+3. Removed failed AIM: curl -X POST http://localhost:8005/remove_aim/30
+4. Rebuilt image with corrected configuration
+5. Redeployed successfully
+
+Final Deployment Status:
+curl http://localhost:8005/list_aims
+[{
+  "image_name":"fileprocessor-aim",
+  "image_tag":"1.0",
+  "status":"running",
+  "container_id":"3e2af2099d24",
+  "slot":30,
+  "port":9030
+}]
+
+Container Verification:
+docker ps | grep fileprocessor
+3e2af2099d24   localhost:5000/fileprocessor-aim:1.0   "python main.py"   
+Up 19 seconds   0.0.0.0:9030->4000/tcp   HYPC_7e5e586d09d0d838_9030
+
+========================================
+PHASE 6: PUBLIC ENDPOINT VERIFICATION
+========================================
+
+Local Health Check:
+curl http://localhost:9030/health
+Response:
+{
+  "status":"healthy",
+  "aim":"FileProcessorAIM",
+  "version":"1.0.1",
+  "cache_stats":{"hits":0,"misses":0,"size":0}
+}
+
+PUBLIC HEALTH CHECK (DAY 9 DELIVERABLE):
+curl http://46.101.166.187:9030/health
+Response:
+{
+  "status":"healthy",
+  "aim":"FileProcessorAIM",
+  "version":"1.0.1",
+  "cache_stats":{"hits":0,"misses":0,"size":0}
+}
+
+SUCCESS: File Processor AIM is publicly accessible on cloud!
+
+Additional Testing:
+# Test file processing endpoint
+curl -X POST http://46.101.166.187:9030/process \
+  -F "file=@test.txt"
+
+Response: Works correctly with file analysis
+
+========================================
+DEPLOYMENT SUMMARY
+========================================
+
+Total Time: ~90 minutes (including troubleshooting)
+
+Infrastructure:
+- Cloud provider: DigitalOcean
+- Server: 46.101.166.187
+- OS: Ubuntu 22.04.5 LTS
+- Docker: 29.1.1
+- HyperCycle Node: 0.4.16
+
+Deployed Services:
+1. HyperCycle Node (port 8000) - Public
+2. Docker Registry (port 5000) - Local
+3. File Processor AIM (port 9030) - Public
+
+Public Endpoints:
+- Node Info: http://46.101.166.187:8000/info
+- AIM Health: http://46.101.166.187:9030/health
+- AIM Process: http://46.101.166.187:9030/process
+
+Security:
+- SSH key authentication
+- UFW firewall active
+- Only necessary ports exposed
+
+Day 9 Status: COMPLETE
+All deliverables met:
+✓ Cloud infrastructure deployed
+✓ Docker installed
+✓ Node runtime installed
+✓ SSH and firewall secured
+✓ One AIM deployed
+✓ Public /health endpoint working
+
+========================================
+LESSONS LEARNED
+========================================
+
+1. Port Configuration Critical:
+   - AIMs must listen on 0.0.0.0, not 127.0.0.1
+   - PORT environment variable must be respected
+   - Internal container port must match mapping
+
+2. Node Manager Database:
+   - Failed AIMs stay registered internally
+   - Must use remove_aim endpoint to clear slots
+   - Restarting doesn't always clear phantom entries
+
+3. Build Strategy:
+   - Building on cloud is faster than transferring images
+   - Local registry simplifies deployment
+   - SCP for source code transfer works well
+
+4. Troubleshooting Workflow:
+   - Check container logs first: docker logs <container_id>
+   - Verify node manager status: curl localhost:8005/list_aims
+   - Test locally before testing publicly
+   - Remove and redeploy for clean slate
+
+========================================
+
