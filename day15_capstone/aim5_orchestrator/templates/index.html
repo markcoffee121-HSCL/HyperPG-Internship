@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HyperPG Research Pipeline</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1> HyperPG Research Pipeline</h1>
+            <p class="subtitle">AI-Powered Research Report Generator</p>
+        </header>
+
+        <!-- Input Section -->
+        <section class="input-section">
+            <div class="upload-area" id="uploadArea">
+                <input type="file" id="fileInput" accept=".txt,.pdf,.docx" hidden>
+                <div class="upload-content">
+                    <div class="upload-icon">📄</div>
+                    <p class="upload-text">Click to upload or drag and drop</p>
+                    <p class="upload-hint">PDF, TXT, or DOCX (max 10MB)</p>
+                </div>
+                <div id="fileInfo" class="file-info" style="display: none;">
+                    <span id="fileName"></span>
+                    <button id="removeFile" class="btn-remove">✕</button>
+                </div>
+            </div>
+
+            <div class="topic-input">
+                <label for="topicInput">Research Topic</label>
+                <input 
+                    type="text" 
+                    id="topicInput" 
+                    placeholder="e.g., blockchain scalability solutions"
+                    maxlength="200"
+                >
+            </div>
+
+            <button id="generateBtn" class="btn-primary" disabled>
+                Generate Report
+            </button>
+        </section>
+
+        <!-- Progress Section -->
+        <section class="progress-section" id="progressSection" style="display: none;">
+            <h3>Processing Pipeline</h3>
+            <div class="progress-steps">
+                <div class="step" id="step1">
+                    <div class="step-icon">📄</div>
+                    <div class="step-label">Processing Document</div>
+                </div>
+                <div class="step" id="step2">
+                    <div class="step-icon">🔍</div>
+                    <div class="step-label">Researching Topic</div>
+                </div>
+                <div class="step" id="step3">
+                    <div class="step-icon">🧠</div>
+                    <div class="step-label">Analyzing Content</div>
+                </div>
+                <div class="step" id="step4">
+                    <div class="step-icon">✍️</div>
+                    <div class="step-label">Writing Report</div>
+                </div>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <p class="progress-text" id="progressText">Initializing...</p>
+        </section>
+
+        <!-- Results Section -->
+        <section class="results-section" id="resultsSection" style="display: none;">
+            <h3>Report Generated Successfully!</h3>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="wordCount">0</div>
+                    <div class="stat-label">Words</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="sourceCount">0</div>
+                    <div class="stat-label">Sources</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="sectionCount">0</div>
+                    <div class="stat-label">Sections</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="confidenceScore">0%</div>
+                    <div class="stat-label">Confidence</div>
+                </div>
+            </div>
+
+            <div class="report-preview">
+                <h4>Executive Summary</h4>
+                <p id="execSummary"></p>
+            </div>
+
+            <div class="download-buttons">
+                <button id="downloadMarkdown" class="btn-download">
+                    📥 Download Markdown
+                </button>
+                <button id="downloadHtml" class="btn-download">
+                    📥 Download HTML
+                </button>
+                <button id="viewReport" class="btn-download btn-primary">
+                    👁️ View Full Report
+                </button>
+            </div>
+        </section>
+
+        <!-- Full Report Modal -->
+        <div id="reportModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="modal-close" id="closeModal">&times;</span>
+                <div id="reportContent" class="report-content"></div>
+            </div>
+        </div>
+
+        <!-- Error Section -->
+        <section class="error-section" id="errorSection" style="display: none;">
+            <h3> Error</h3>
+            <p id="errorMessage"></p>
+            <button id="retryBtn" class="btn-primary">Try Again</button>
+        </section>
+
+        <!-- Footer -->
+        <footer>
+            <p>Day 15 Capstone Project - HyperCycle Labs Internship</p>
+            <p>Powered by 4 AI Agents: File Processor • Research • Analyzer • Writer</p>
+        </footer>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>

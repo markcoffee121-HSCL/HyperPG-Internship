@@ -1,0 +1,5 @@
+git+https://github.com/hypercycle-development/pyhypercycle-aim.git#egg=pyhypercycle_aim
+PyPDF2==3.0.1
+python-docx==1.1.0
+python-multipart==0.0.6
+werkzeug==3.0.1

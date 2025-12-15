@@ -1,203 +1,138 @@
 from pyhypercycle_aim import SimpleServer, aim_uri, JSONResponseCORS
-from starlette.requests import Request
-from starlette.responses import Response
-import logging
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
-# Configuration constants
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB limit
-
+import hashlib
+import time
 
 class FileProcessorAIM(SimpleServer):
     """
-    File Processor AIM - Day 6
-    Accepts text file uploads and returns analysis (line count, word count)
+    File Processor AIM with Response Caching
+    Analyzes text files and returns statistics
     """
     
     manifest = {
         "name": "FileProcessorAIM",
         "short_name": "fileprocessor",
-        "version": "1.0.0",
-        "author": "Raijin - HyperPG Internship Day 6",
+        "version": "1.0.1",
+        "author": "HyperPG Intern",
         "license": "MIT",
-        "documentation_url": "https://github.com/markcoffee121-HSCL/HyperPG-Internship",
-        "terms_of_service": "",
+        "documentation_url": "",
+        "terms_of_service": ""
     }
-
+    
+    def __init__(self):
+        super().__init__()
+        # In-memory cache with TTL
+        self.cache = {}
+        self.cache_ttl = 300  # 5 minutes in seconds
+        self.cache_hits = 0
+        self.cache_misses = 0
+    
+    def _get_cache_key(self, content: bytes) -> str:
+        """Generate a hash key for cache lookup"""
+        return hashlib.sha256(content).hexdigest()
+    
+    def _get_from_cache(self, cache_key: str):
+        """Get result from cache if not expired"""
+        if cache_key in self.cache:
+            result, timestamp = self.cache[cache_key]
+            if time.time() - timestamp < self.cache_ttl:
+                self.cache_hits += 1
+                print(f"[CACHE HIT] Hits: {self.cache_hits}, Misses: {self.cache_misses}")
+                return result
+            else:
+                del self.cache[cache_key]
+        
+        self.cache_misses += 1
+        print(f"[CACHE MISS] Hits: {self.cache_hits}, Misses: {self.cache_misses}")
+        return None
+    
+    def _save_to_cache(self, cache_key: str, result: dict):
+        """Save result to cache with timestamp"""
+        self.cache[cache_key] = (result, time.time())
+        print(f"[CACHE SAVED] Cache size: {len(self.cache)}")
+    
     @aim_uri(
         uri="/health",
         methods=["GET"],
         endpoint_manifest={
             "input_query": {},
+            "input_headers": {},
             "input_body": {},
-            "output": {"status": "<string>", "aim": "<string>"},
-            "documentation": "Health check endpoint for monitoring AIM status.",
-            "example_calls": [{
-                "method": "GET",
-                "output": {"status": "healthy", "aim": "FileProcessorAIM"}
-            }],
+            "output": {"status": "<string>"},
+            "documentation": "Health check with cache stats",
+            "example_calls": [{}],
             "is_public": True
         }
     )
-    async def health_endpoint(self, request: Request):
-        """Health check endpoint"""
-        logger.info("Health check requested")
+    async def health_check(self, request):
         return JSONResponseCORS({
             "status": "healthy",
             "aim": "FileProcessorAIM",
-            "version": "1.0.0"
+            "version": "1.0.1",
+            "cache_stats": {
+                "hits": self.cache_hits,
+                "misses": self.cache_misses,
+                "size": len(self.cache)
+            }
         })
-
+    
     @aim_uri(
         uri="/process",
         methods=["POST"],
         endpoint_manifest={
-            "input_query": {},
             "input_body": {"file": "<file>"},
             "output": {
                 "filename": "<string>",
                 "line_count": "<int>",
                 "word_count": "<int>",
-                "file_size_bytes": "<int>"
+                "file_size_bytes": "<int>",
+                "cached": "<boolean>"
             },
-            "documentation": "Accepts a text file upload and returns analysis including line count and word count.",
-            "example_calls": [{
-                "method": "POST",
-                "body": "multipart/form-data with 'file' field",
-                "output": {
-                    "filename": "example.txt",
-                    "line_count": 42,
-                    "word_count": 284,
-                    "file_size_bytes": 1458
-                }
-            }],
+            "documentation": "Process text file with caching",
+            "example_calls": [{}],
             "is_public": True
         }
     )
-    async def process_endpoint(self, request: Request):
-        """
-        Process uploaded text file and return analysis
-        Phase 3: Complete text analysis implementation
-        """
+    async def process_file(self, request):
+        form = await request.form()
+        file = form.get('file')
+        
+        if not file:
+            return JSONResponseCORS({"error": "No file provided"}, status_code=400)
+        
+        content = await file.read()
+        
+        if len(content) == 0:
+            return JSONResponseCORS({"error": "File is empty"}, status_code=400)
+        
+        # Check cache
+        cache_key = self._get_cache_key(content)
+        cached_result = self._get_from_cache(cache_key)
+        
+        if cached_result:
+            cached_result['filename'] = file.filename
+            cached_result['cached'] = True
+            return JSONResponseCORS(cached_result)
+        
+        # Process file
         try:
-            logger.info("File processing request received")
-            
-            # Parse multipart form data
-            form = await request.form()
-            
-            # Check if file exists in request
-            if "file" not in form:
-                logger.warning("No file provided in request")
-                return JSONResponseCORS({
-                    "error": "No file provided",
-                    "details": "Request must include a 'file' field with multipart/form-data"
-                }, status_code=400)
-            
-            # Extract file from form
-            uploaded_file = form["file"]
-            
-            # Get filename
-            filename = uploaded_file.filename
-            logger.info(f"Processing file: {filename}")
-            
-            # Read file content
-            file_content = await uploaded_file.read()
-            file_size = len(file_content)
-            
-            # Check file size
-            if file_size > MAX_FILE_SIZE:
-                logger.warning(f"File too large: {file_size} bytes (max: {MAX_FILE_SIZE})")
-                return JSONResponseCORS({
-                    "error": "File too large",
-                    "details": f"Maximum file size is {MAX_FILE_SIZE / (1024*1024)}MB"
-                }, status_code=413)
-            
-            # Check for empty file
-            if file_size == 0:
-                logger.info(f"Empty file received: {filename}")
-                return JSONResponseCORS({
-                    "filename": filename,
-                    "line_count": 0,
-                    "word_count": 0,
-                    "file_size_bytes": 0
-                })
-            
-            # Attempt to decode as UTF-8 text
-            try:
-                text_content = file_content.decode('utf-8')
-                logger.info(f"File decoded as UTF-8 successfully")
-            except UnicodeDecodeError:
-                logger.warning(f"File is not valid UTF-8 text: {filename}")
-                return JSONResponseCORS({
-                    "error": "Invalid text file",
-                    "details": "File must be valid UTF-8 encoded text. Binary files are not supported."
-                }, status_code=400)
-            
-            # Analyze text content
-            line_count = self._count_lines(text_content)
-            word_count = self._count_words(text_content)
-            
-            logger.info(f"Analysis complete: {filename} - {line_count} lines, {word_count} words")
-            
-            # Return complete analysis
-            return JSONResponseCORS({
-                "filename": filename,
-                "line_count": line_count,
-                "word_count": word_count,
-                "file_size_bytes": file_size
-            })
-            
-        except Exception as e:
-            logger.error(f"Error processing file: {str(e)}")
-            return JSONResponseCORS({
-                "error": "Internal server error",
-                "details": str(e)
-            }, status_code=500)
-    
-    def _count_lines(self, text: str) -> int:
-        """
-        Count lines in text content.
-        Handles different line endings: \n, \r\n, \r
-        """
-        if not text:
-            return 0
+            text = content.decode('utf-8')
+        except UnicodeDecodeError:
+            return JSONResponseCORS({"error": "Invalid UTF-8"}, status_code=400)
         
-        # Normalize line endings to \n
-        text = text.replace('\r\n', '\n').replace('\r', '\n')
-        
-        # Split by newline and count non-empty result
         lines = text.split('\n')
-        
-        # Count lines (including last line if it doesn't end with newline)
-        # If text ends with newline, don't count the empty string after it
-        if text.endswith('\n'):
-            return len(lines) - 1 if lines[-1] == '' else len(lines)
-        else:
-            return len(lines)
-    
-    def _count_words(self, text: str) -> int:
-        """
-        Count words in text content.
-        Words are defined as sequences of non-whitespace characters.
-        """
-        if not text:
-            return 0
-        
-        # Split by whitespace and filter out empty strings
         words = text.split()
         
-        return len(words)
-
+        result = {
+            "filename": file.filename,
+            "line_count": len(lines),
+            "word_count": len(words),
+            "file_size_bytes": len(content),
+            "cached": False
+        }
+        
+        self._save_to_cache(cache_key, result)
+        return JSONResponseCORS(result)
 
 if __name__ == '__main__':
-    import os
-    port = int(os.getenv('PORT', 8000))  # Use PORT env var, default to 8000
     server = FileProcessorAIM()
-    logger.info(f"Starting FileProcessorAIM server on port {port}...")
-    server.run(uvicorn_kwargs={"port": port, "host": "0.0.0.0"})
+    server.run()

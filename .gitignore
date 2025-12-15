@@ -1,0 +1,14 @@
+# Docker images (too large for GitHub)
+*.tar
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment files with secrets
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
